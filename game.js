@@ -4,7 +4,11 @@
 const gameState = {
     reel: ["H1", "H2", "J", "K", "K", "J"],
     result: ["A", "A", "K"],
-
+    reels: [],
+    numReels: 5,
+    numRows: 10,
+    reelHeight: 4,
+    collidingRows: 6,
 };
 
 const config = {

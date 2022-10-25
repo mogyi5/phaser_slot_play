@@ -3,30 +3,54 @@ class GameScene extends Phaser.Scene {
         super({ key: "GameScene" });
     }
 
+    preload() {
+        this.load.image(
+            "platform",
+            "https://content.codecademy.com/courses/learn-phaser/physics/platform.png"
+        );
+    }
+
     create() {
 
+        gameState.collidingInvisible = this.physics.add.staticGroup();
+        gameState.collidingInvisible.create(200, 250, "platform").setScale(1, 0.3).refreshBody();
 
-        gameState.reels = this.physics.add.group({ allowGravity: false, });
 
-        for (let i = 0; i < 4; i++) {
 
-            var currentReel = game.add.group();
+        for (let reel = 0; reel < gameState.numReels; reel++) {
 
-            for (let j = 0; j < 2; j++) {
-                currentReel.add(this.add.rectangle(
-                    100 + (i * 60),
-                    100 - (i * 60),
+            let newReel = this.physics.add.group();
+
+            for (let row = 0; row < gameState.numRows; row++) {
+
+                let currentSymbol = this.add.rectangle(
+                    100 + (reel * 55),
+                    200 - (row * 50),
                     50,
                     50,
-                    0x4d39e0,
-                    1,
-                ));
+                    this.getRandomColor(),
+                    1
+                );
+
+                newReel.add(currentSymbol);
             }
 
+            gameState.reels.push(newReel);
 
-            gameState.reels.add(currentReel);
 
         }
+
+        console.log(gameState.reels);
+
+
+        //TODO: fix this so that the reel stops good
+        for (let reel = 0; reel < gameState.numReels; reel++) {
+            this.physics.add.collider(gameState.reels[reel], gameState.collidingInvisible, (item) => {
+                this.stopSpinning2(item);
+            });
+        }
+
+
     }
 
 
@@ -34,18 +58,20 @@ class GameScene extends Phaser.Scene {
 
         this.input.keyboard.on("keyup-A", () => {
 
-            if (gameState.reels.getChildren()[0].body.velocity.y == 0) {
-                for (let i = 0; i < 4; i++) {
-                    this.time.delayedCall(i * 200,
-                        this.startSpinning, [i],
+
+
+            if (gameState.reels[0].getChildren()[0].body.velocity.y == 0) {
+                for (let reel = 0; reel < gameState.numReels; reel++) {
+                    this.time.delayedCall(reel * 200,
+                        this.startSpinning, [gameState.reels[reel]],
                         this,
                     )
                 }
 
             } else {
-                for (let i = 0; i < 4; i++) {
-                    this.time.delayedCall(i * 200,
-                        this.stopSpinning, [i],
+                for (let reel = 0; reel < gameState.numReels; reel++) {
+                    this.time.delayedCall(reel * 200,
+                        this.stopSpinning, [gameState.reels[reel]],
                         this,
                     )
                 }
@@ -54,43 +80,76 @@ class GameScene extends Phaser.Scene {
         });
 
 
-        // if (gameState.reels.getChildren()[0].body.velocity.y == 0) {
-        for (let i = 0; i < 4; i++) {
-
-            let velo = gameState.reels.getChildren()[i].body.velocity.y;
-            if (velo > 0) {
-                if (velo < 50) {
-                    this.increaseVelocity(i, 1.8);
-                } else if (velo < 100) {
-                    this.increaseVelocity(i, 1.1);
-                } else if (velo < 325) {
-                    this.increaseVelocity(i, 1.25);
+        for (let reel = 0; reel < gameState.numReels; reel++) {
+            if (gameState.reels[reel].getChildren()[0].body.velocity.y != 0) {
+                for (let row = 0; row < gameState.numRows; row++) {
+                    let velo = gameState.reels[reel].getChildren()[row].body.velocity.y;
+                    if (velo > 0) {
+                        if (velo < 50) {
+                            this.increaseVelocity(reel, row, 1.8);
+                        } else if (velo < 100) {
+                            this.increaseVelocity(reel, row, 1.1);
+                        } else if (velo < 325) {
+                            this.increaseVelocity(reel, row, 1.25);
+                        }
+                    }
                 }
             }
-
-
-            if (gameState.reels.getChildren()[i].y > 280) {
-                gameState.reels.getChildren()[i].y = -50;
-            }
         }
+
+
+
+        // for (let reel = 0; reel < gameState.numReels; reel++) {
+        //     for (let row = 0; row < gameState.numRows; row++) {
+        //         this.moveReelTop(gameState.reels[reel].getChildren()[row]);
+        //     }
         // }
 
+    }
 
+    moveReelTop(reel) {
+        if (reel.y > 280) {
+            reel.y = -50;
+        }
+    }
 
+    startSpinning(reel) {
+        console.log("tried to start, omg");
+        for (let row = 0; row < gameState.numRows; row++) {
+            reel.getChildren()[row].body.velocity.y = 1;
+        }
 
     }
 
-    startSpinning(i) {
-        gameState.reels.getChildren()[i].body.velocity.y = 1;
+    stopSpinning2(reel) {
+
+        // console.log("tried to stop, omg");
+        // console.log(reel);
+        // for (let row = 0; row < gameState.numRows; row++) {
+        reel.body.velocity.y = 0;
+        // }
     }
 
-    stopSpinning(i) {
-        gameState.reels.getChildren()[i].body.velocity.y = 0;
+    stopSpinning(reel) {
 
+        console.log("tried to stop, omg");
+        console.log(reel);
+        for (let row = 0; row < gameState.numRows; row++) {
+            reel.getChildren()[row].body.velocity.y = 0;
+        }
     }
 
-    increaseVelocity(i, level) {
-        gameState.reels.getChildren()[i].body.velocity.y *= level;
+    increaseVelocity(reel, row, level) {
+        gameState.reels[reel].getChildren()[row].body.velocity.y *= level;
+    }
+
+    getRandomColor() {
+        var letters = '0123456789ABCDEF';
+        var color = '0x';
+        for (var i = 0; i < 6; i++) {
+            color += letters[Math.floor(Math.random() * 16)];
+        }
+        return color;
     }
 
 
